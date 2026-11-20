@@ -20,6 +20,9 @@ MALFORMED_PAYLOAD = "could not validate credentials"
 ARTICLE_IS_ALREADY_FAVORITED = "you are already marked this articles as favorite"
 ARTICLE_IS_NOT_FAVORITED = "article is not favorited"
 
+ARTICLE_IS_ALREADY_BOOKMARKED = "you have already bookmarked this article"
+ARTICLE_IS_NOT_BOOKMARKED = "article is not bookmarked"
+
 COMMENT_DOES_NOT_EXIST = "comment does not exist"
 
 AUTHENTICATION_REQUIRED = "authentication required"

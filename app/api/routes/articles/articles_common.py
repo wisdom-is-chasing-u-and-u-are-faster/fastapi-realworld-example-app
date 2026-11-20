@@ -5,6 +5,7 @@ from app.api.dependencies.articles import get_article_by_slug_from_path
 from app.api.dependencies.authentication import get_current_user_authorizer
 from app.api.dependencies.database import get_repository
 from app.db.repositories.articles import ArticlesRepository
+from app.db.repositories.bookmarks import BookmarksRepository
 from app.models.domain.articles import Article
 from app.models.domain.users import User
 from app.models.schemas.articles import (
@@ -14,7 +15,12 @@ from app.models.schemas.articles import (
     ArticleInResponse,
     ListOfArticlesInResponse,
 )
+from app.models.schemas.bookmarks import (
+    ArticleWithBookmark,
+    ArticleWithBookmarkInResponse,
+)
 from app.resources import strings
+from app.services.bookmarks import BookmarkService
 
 router = APIRouter()
 
@@ -101,4 +107,60 @@ async def remove_article_from_favorites(
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail=strings.ARTICLE_IS_NOT_FAVORITED,
+    )
+
+
+@router.post(
+    "/{slug}/bookmark",
+    response_model=ArticleWithBookmarkInResponse,
+    name="articles:bookmark-article",
+)
+async def bookmark_article(
+    article: Article = Depends(get_article_by_slug_from_path),
+    user: User = Depends(get_current_user_authorizer()),
+    bookmarks_repo: BookmarksRepository = Depends(get_repository(BookmarksRepository)),
+) -> ArticleWithBookmarkInResponse:
+    success = await BookmarkService.bookmark_article(
+        bookmarks_repo=bookmarks_repo,
+        article=article,
+        user=user,
+    )
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=strings.ARTICLE_IS_ALREADY_BOOKMARKED,
+        )
+
+    article_dict = article.dict()
+    article_dict["bookmarked"] = True
+    return ArticleWithBookmarkInResponse(
+        article=ArticleWithBookmark(**article_dict),
+    )
+
+
+@router.delete(
+    "/{slug}/bookmark",
+    response_model=ArticleWithBookmarkInResponse,
+    name="articles:unbookmark-article",
+)
+async def unbookmark_article(
+    article: Article = Depends(get_article_by_slug_from_path),
+    user: User = Depends(get_current_user_authorizer()),
+    bookmarks_repo: BookmarksRepository = Depends(get_repository(BookmarksRepository)),
+) -> ArticleWithBookmarkInResponse:
+    success = await BookmarkService.unbookmark_article(
+        bookmarks_repo=bookmarks_repo,
+        article=article,
+        user=user,
+    )
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=strings.ARTICLE_IS_NOT_BOOKMARKED,
+        )
+
+    article_dict = article.dict()
+    article_dict["bookmarked"] = False
+    return ArticleWithBookmarkInResponse(
+        article=ArticleWithBookmark(**article_dict),
     )
